@@ -106,21 +106,32 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### Example Queries")
-    
-    st.markdown("**Issues**")
+
+    st.markdown("**Issues & PRs**")
     st.markdown("- Show me issues by label")
-    st.markdown("- What issues are being actively discussed?")
-    
-    st.markdown("**Pull Requests**")
     st.markdown("- What PRs need review?")
-    st.markdown("- Show me recent merged PRs")
-    
-    st.markdown("**Repository**")
-    st.markdown("- Show repository health metrics")
-    st.markdown("- Show repository activity patterns")
-    
+
+    st.markdown("**GitHub Actions/CI/CD**")
+    st.markdown("- Show all failed workflow runs")
+    st.markdown("- Which workflows take longest?")
+    st.markdown("- Analyze CI/CD success rates")
+
+    st.markdown("**Code Search**")
+    st.markdown("- Find TODO/FIXME comments")
+    st.markdown("- Search for hardcoded secrets")
+    st.markdown("- Find deprecated API usage")
+
+    st.markdown("**Branch Analysis**")
+    st.markdown("- List stale branches (>60 days)")
+    st.markdown("- Compare main with develop branch")
+    st.markdown("- Show unmerged feature branches")
+
+    st.markdown("**Commits & Releases**")
+    st.markdown("- Top contributors this month")
+    st.markdown("- Generate changelog since last release")
+
     st.markdown("---")
-    st.caption("Note: Always specify the repository in your query if not already selected in the main input.")
+    st.caption("💡 Tip: The agent now supports workflows, code search, branches, commits, and releases!")
 
 col1, col2 = st.columns([3, 1])
 with col1:
@@ -137,13 +148,31 @@ with col1:
             st.error(error_msg)
 with col2:
     query_type = st.selectbox("Query Type", [
-        "Issues", "Pull Requests", "Repository Activity", "Custom"
+        "Issues",
+        "Pull Requests",
+        "GitHub Actions/CI/CD",
+        "Code Search",
+        "Branch Analysis",
+        "Commit History",
+        "Releases",
+        "Repository Activity",
+        "Custom"
     ])
 
 if query_type == "Issues":
     query_template = f"Find issues labeled as bugs in {repo}" if repo else "Find issues labeled as bugs"
 elif query_type == "Pull Requests":
     query_template = f"Show me recent merged PRs in {repo}" if repo else "Show me recent merged PRs"
+elif query_type == "GitHub Actions/CI/CD":
+    query_template = f"Analyze workflow runs and identify any failures in {repo}" if repo else "Analyze workflow runs and identify any failures"
+elif query_type == "Code Search":
+    query_template = f"Search for TODO comments in {repo}" if repo else "Search for TODO comments"
+elif query_type == "Branch Analysis":
+    query_template = f"List all stale branches (no activity in 60 days) in {repo}" if repo else "List all stale branches"
+elif query_type == "Commit History":
+    query_template = f"Show commit patterns and top contributors in {repo}" if repo else "Show commit patterns and top contributors"
+elif query_type == "Releases":
+    query_template = f"Show recent releases and generate changelog in {repo}" if repo else "Show recent releases"
 elif query_type == "Repository Activity":
     query_template = f"Analyze code quality trends in {repo}" if repo else "Analyze code quality trends"
 else:
@@ -175,7 +204,7 @@ async def run_github_agent(message: str) -> str:
             env={
                 **os.environ,
                 "GITHUB_PERSONAL_ACCESS_TOKEN": os.getenv('GITHUB_TOKEN'),
-                "GITHUB_TOOLSETS": "repos,issues,pull_requests"
+                "GITHUB_TOOLSETS": "repos,issues,pull_requests,workflows,search,branches,commits,releases"
             }
         )
 
@@ -183,12 +212,66 @@ async def run_github_agent(message: str) -> str:
             agent = Agent(
                 tools=[mcp_tools],
                 instructions=dedent("""\
-                    You are a GitHub assistant. Help users explore repositories and their activity.
-                    - Provide organized, concise insights about the repository
-                    - Focus on facts and data from the GitHub API
-                    - Use markdown formatting for better readability
-                    - Present numerical data in tables when appropriate
-                    - Include links to relevant GitHub pages when helpful
+                    You are an advanced GitHub intelligence agent with comprehensive repository analysis capabilities.
+
+                    **Core Capabilities:**
+                    - Repository analysis (structure, health, metrics, statistics)
+                    - Issue & PR tracking with detailed insights
+                    - GitHub Actions/CI/CD workflow analysis (runs, jobs, failures, performance)
+                    - Code search across repositories (files, patterns, functions, security issues)
+                    - Branch management (comparison, divergence, stale branches, protection rules)
+                    - Commit history analysis (patterns, authors, file changes)
+                    - Release tracking (versions, changelogs, frequency)
+
+                    **GitHub Actions/Workflows Analysis:**
+                    - Identify failing workflows and their failure patterns
+                    - Analyze workflow run times and performance bottlenecks
+                    - Track CI/CD success rates and trends
+                    - Identify slow jobs and suggest optimizations
+                    - Monitor deployment frequency and reliability
+
+                    **Code Search Capabilities:**
+                    - Search for specific code patterns, functions, or classes
+                    - Find security vulnerabilities (hardcoded secrets, SQL injection risks)
+                    - Locate deprecated API usage
+                    - Track TODO/FIXME comments
+                    - Find code duplication across files
+
+                    **Branch Analysis:**
+                    - Compare branches and show divergence
+                    - Identify stale branches (no recent activity)
+                    - Analyze branch protection rules
+                    - Track branch creation and deletion patterns
+                    - Find unmerged feature branches
+
+                    **Analysis Guidelines:**
+                    - Provide actionable insights, not just raw data
+                    - Identify trends, patterns, and anomalies
+                    - Highlight potential issues, bottlenecks, or risks
+                    - Cross-reference related items (link PRs to issues, commits to workflows)
+                    - Suggest improvements and optimizations when applicable
+
+                    **Data Presentation:**
+                    - Use markdown tables for comparative/structured data
+                    - Use bullet points for lists and summaries
+                    - Use code blocks for code snippets and file paths
+                    - Include statistics, percentages, and trends
+                    - Add emoji indicators (✅ success, ❌ failure, ⚠️ warning, 🔄 in-progress)
+                    - Include clickable GitHub links to relevant pages
+
+                    **Multi-Step Analysis:**
+                    When appropriate, perform comprehensive analysis by:
+                    1. Gathering data from multiple sources
+                    2. Identifying patterns and correlations
+                    3. Providing context and explanations
+                    4. Offering recommendations
+
+                    **Proactive Insights:**
+                    - Flag failing workflows without being asked
+                    - Identify security concerns in code
+                    - Highlight stale PRs or branches
+                    - Suggest workflow optimizations
+                    - Point out unusual patterns or anomalies
                 """),
                 markdown=True,
             )
